@@ -1,34 +1,66 @@
 use rand::Rng;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct Coord {
     pub x: u32,
     pub y: u32,
 }
 
+impl From<(u32, u32)> for Coord {
+    fn from(value: (u32, u32)) -> Self {
+        Coord {
+            x: value.0,
+            y: value.1,
+        }
+    }
+}
+
+enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+pub struct Snake {
+    pub body: Vec<Coord>,
+    pub direction: Direction,
+}
+
 pub struct Arena {
-    pub width: u32,
-    pub height: u32,
+    pub rows: u32,
+    pub cols: u32,
     pub food: Coord,
+    pub snake: Snake,
 }
 
 impl Arena {
-    pub fn new(width: u32, height: u32) -> Self {
-        Self {
-            width,
-            height,
-            food: spawn_food(width, height),
-        }
+    pub fn new(rows: u32, cols: u32) -> Self {
+        let mut a = Self {
+            rows,
+            cols,
+            // dummy value - immediately overwriten
+            food: (0, 0).into(),
+            // snake at center, starting right
+            snake: Snake {
+                body: vec![(rows / 2, cols / 2).into()],
+                direction: Direction::Right,
+            },
+        };
+
+        // randomly seed the food
+        a.regen_food();
+        a
     }
 
     pub fn regen_food(&mut self) {
-        self.food = spawn_food(self.width, self.height);
+        self.food = self.spawn_food();
     }
-}
 
-fn spawn_food(width: u32, height: u32) -> Coord {
-    Coord {
-        x: rand::thread_rng().gen_range(0..width),
-        y: rand::thread_rng().gen_range(0..height),
+    fn spawn_food(&self) -> Coord {
+        Coord {
+            x: rand::thread_rng().gen_range(0..self.rows),
+            y: rand::thread_rng().gen_range(0..self.cols),
+        }
     }
 }

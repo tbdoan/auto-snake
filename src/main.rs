@@ -1,20 +1,21 @@
+use anyhow::Result;
 use crossterm::cursor::Hide;
-use crossterm::cursor::Show;
 use crossterm::execute;
 use crossterm::terminal::Clear;
 use crossterm::terminal::ClearType;
 use crossterm::terminal::EnterAlternateScreen;
-use crossterm::terminal::LeaveAlternateScreen;
 use std::io::stdout;
 use std::time::Duration;
 
 mod arena;
-mod blackboard;
+// mod blackboard;
+mod nodes;
 mod render;
+mod tree;
 
 use arena::Arena;
 
-fn main() -> std::io::Result<()> {
+fn main() -> Result<()> {
     let mut arena = Arena::new(50, 25);
     let mut out = stdout();
 
@@ -27,8 +28,4 @@ fn main() -> std::io::Result<()> {
 
         std::thread::sleep(Duration::from_millis(100));
     }
-
-    execute!(out, Show, LeaveAlternateScreen)?;
-
-    Ok(())
 }
