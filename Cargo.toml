@@ -1,0 +1,9 @@
+[package]
+name = "auto-snake"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bonsai-bt = "0.13.0"
+crossterm = "0.28"
+rand = "0.8"
