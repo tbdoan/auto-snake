@@ -1,6 +1,8 @@
+use std::collections::HashSet;
+
 use rand::Rng;
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Coord {
     pub x: u32,
     pub y: u32,
@@ -58,6 +60,12 @@ impl Arena {
     }
 
     fn spawn_food(&self) -> Coord {
+        let mut excl = HashSet::new();
+        // exclude its last position
+        excl.insert(self.food);
+        // exclude snake body
+        excl.extend(self.snake.body.iter().copied());
+
         Coord {
             x: rand::thread_rng().gen_range(0..self.rows),
             y: rand::thread_rng().gen_range(0..self.cols),

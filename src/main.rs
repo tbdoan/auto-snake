@@ -21,11 +21,14 @@ fn main() -> Result<()> {
 
     execute!(out, EnterAlternateScreen, Hide, Clear(ClearType::All))?;
 
+    let fps = 10;
+
     loop {
-        arena.regen_food();
+        // arena.regen_food();
 
         render::render(&arena)?;
 
-        std::thread::sleep(Duration::from_millis(100));
+        // 10 fps
+        std::thread::sleep(Duration::from_secs(1) / fps);
     }
 }
