@@ -4,10 +4,11 @@ use std::fmt::Display;
 
 use rand::Rng;
 
+/// negative coordinates are convenient for detecting collision with left/up boundary
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Coord {
-    pub x: u32,
-    pub y: u32,
+    pub x: i32,
+    pub y: i32,
 }
 
 impl Display for Coord {
@@ -16,8 +17,8 @@ impl Display for Coord {
     }
 }
 
-impl From<(u32, u32)> for Coord {
-    fn from(value: (u32, u32)) -> Self {
+impl From<(i32, i32)> for Coord {
+    fn from(value: (i32, i32)) -> Self {
         Coord {
             x: value.0,
             y: value.1,
@@ -25,11 +26,50 @@ impl From<(u32, u32)> for Coord {
     }
 }
 
-enum MoveDirection {
+impl Coord {
+    // returns none if moving would underflow
+    pub fn move_in(&self, dir: MoveDirection) -> Self {
+        let mut after = *self; // copy it
+        match dir {
+            MoveDirection::Up => after.x -= 1,
+            MoveDirection::Down => after.x += 1,
+            MoveDirection::Left => after.y -= 1,
+            MoveDirection::Right => after.y += 1,
+        };
+        after
+    }
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum MoveDirection {
     Up,
     Down,
     Left,
     Right,
+}
+
+impl MoveDirection {
+    pub fn enumerate() -> Vec<Self> {
+        vec![Self::Up, Self::Right, Self::Down, Self::Left]
+    }
+
+    pub fn clockwise(&self) -> Self {
+        match self {
+            MoveDirection::Up => MoveDirection::Left,
+            MoveDirection::Left => MoveDirection::Down,
+            MoveDirection::Down => MoveDirection::Right,
+            MoveDirection::Right => MoveDirection::Up,
+        }
+    }
+
+    pub fn counterclockwise(&self) -> Self {
+        match self {
+            MoveDirection::Up => MoveDirection::Right,
+            MoveDirection::Right => MoveDirection::Down,
+            MoveDirection::Down => MoveDirection::Left,
+            MoveDirection::Left => MoveDirection::Up,
+        }
+    }
 }
 
 pub struct Snake {
@@ -37,27 +77,15 @@ pub struct Snake {
     /// not including head
     pub body: VecDeque<Coord>,
     pub direction: MoveDirection,
-    pub dead: bool,
-}
-
-enum TurnDirection {
-    Left,
-    Right,
 }
 
 impl Snake {
     // unconditionally move the snake - we must check for collisions at a
     // later step, to handle the case of multiple snakes headbutting.
     pub fn move_forward(&mut self) {
-        // set the new head
         let head = self.head;
-        let new_head = match self.direction {
-            MoveDirection::Up => (head.x - 1, head.y),
-            MoveDirection::Down => (head.x + 1, head.y),
-            MoveDirection::Left => (head.x, head.y - 1),
-            MoveDirection::Right => (head.x, head.y + 1),
-        }
-        .into();
+        let new_head = self.head.move_in(self.direction);
+        log::info!("new head: {new_head}");
 
         // set the new head + shift the body
         self.head = new_head;
@@ -66,28 +94,31 @@ impl Snake {
     }
 
     /// does not move the snake
-    pub fn turn(&mut self, turn_direction: TurnDirection) {
-        self.direction = match turn_direction {
-            TurnDirection::Left => match self.direction {
-                MoveDirection::Up => MoveDirection::Left,
-                MoveDirection::Down => MoveDirection::Right,
-                MoveDirection::Left => MoveDirection::Down,
-                MoveDirection::Right => MoveDirection::Up,
-            },
-            TurnDirection::Right => match self.direction {
-                MoveDirection::Up => MoveDirection::Right,
-                MoveDirection::Down => MoveDirection::Left,
-                MoveDirection::Left => MoveDirection::Up,
-                MoveDirection::Right => MoveDirection::Down,
-            },
-        };
+    pub fn turn_left(&mut self) {
+        self.direction = self.direction.clockwise();
+    }
+
+    /// does not move the snake
+    pub fn turn_right(&mut self) {
+        self.direction = self.direction.counterclockwise();
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Dimensions {
+    pub rows: u32,
+    pub cols: u32,
+}
+
+impl Dimensions {
+    pub fn check_oob(&self, c: Coord) -> bool {
+        c.x < 0 || c.x >= self.rows as i32 || c.y < 0 || c.y >= self.cols as i32
     }
 }
 
 /// global, game state
 pub struct Arena {
-    pub rows: u32,
-    pub cols: u32,
+    pub dim: Dimensions,
     pub food: Coord,
     pub snake: Snake,
 }
@@ -95,22 +126,28 @@ pub struct Arena {
 impl Arena {
     pub fn new(rows: u32, cols: u32) -> Self {
         let mut a = Self {
-            rows,
-            cols,
+            dim: Dimensions { rows, cols },
             // dummy value - immediately overwriten
             food: (0, 0).into(),
             // snake at center, starting right
             snake: Snake {
-                head: (rows / 2, cols / 2).into(),
+                head: (rows as i32 / 2, cols as i32 / 2).into(),
                 body: VecDeque::new(),
                 direction: MoveDirection::Right,
-                dead: false,
             },
         };
 
         // randomly seed the food
         a.regen_food();
         a
+    }
+
+    pub fn rows(&self) -> u32 {
+        self.dim.rows
+    }
+
+    pub fn cols(&self) -> u32 {
+        self.dim.cols
     }
 
     pub fn regen_food(&mut self) {
@@ -125,8 +162,8 @@ impl Arena {
         excl.extend(self.snake.body.iter().copied());
 
         Coord {
-            x: rand::thread_rng().gen_range(0..self.rows),
-            y: rand::thread_rng().gen_range(0..self.cols),
+            x: rand::thread_rng().gen_range(0..self.rows()) as i32,
+            y: rand::thread_rng().gen_range(0..self.cols()) as i32,
         }
     }
 }

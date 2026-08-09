@@ -1,18 +1,14 @@
-use crate::arena::Coord;
+use crate::arena::MoveDirection;
 
-
-
-struct Blackboard {
-    food: Coord,
-    snake: Snake,
+pub struct Blackboard {
+    // written to by the path planner
+    pub new_direction: Option<MoveDirection>,
 }
 
 impl Blackboard {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
-            food: Coord::new(0, 0),
-            body: Vec::new(),
-            direction: Direction::Right,
+            new_direction: None,
         }
     }
 }

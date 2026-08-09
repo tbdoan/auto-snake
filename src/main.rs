@@ -8,13 +8,15 @@ use std::io::stdout;
 use std::time::Duration;
 
 mod arena;
-// mod blackboard;
+mod bfs;
+mod blackboard;
 mod render;
 mod tree;
 
 use arena::Arena;
 use bonsai_bt as bbt;
 
+use crate::blackboard::Blackboard;
 use crate::tree::snake_behavior;
 use crate::tree::snake_tick;
 
@@ -35,7 +37,7 @@ fn main() -> Result<()> {
         render::render(&arena)?; // initial render
     }
 
-    let mut bt = bbt::BT::new(snake_behavior(), ()).with_telemetry(8080)?;
+    let mut bt = bbt::BT::new(snake_behavior(), Blackboard::new()).with_telemetry(8080)?;
 
     // let fps = 10;
     let fps = 1;

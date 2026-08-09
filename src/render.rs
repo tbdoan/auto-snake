@@ -10,8 +10,8 @@ pub fn render(arena: &Arena) -> std::io::Result<()> {
     let mut out = stdout();
     execute!(out, MoveTo(0, 0))?;
 
-    let rows = arena.rows as usize;
-    let cols = arena.cols as usize;
+    let rows = arena.rows() as usize;
+    let cols = arena.cols() as usize;
 
     // setup grid - extra room for the borders
     let mut grid = vec![vec![' '; cols + 2]; rows + 2];

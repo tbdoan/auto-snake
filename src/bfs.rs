@@ -24,12 +24,7 @@ pub fn bfs(start: Coord, end: Coord, dim: Dimensions, obstacles: &[Coord]) -> Ve
     let mut child_parent = HashMap::new();
 
     'bfs: while let Some(cur) = q.pop_front() {
-        for dir in [
-            MoveDirection::Up,
-            MoveDirection::Down,
-            MoveDirection::Left,
-            MoveDirection::Right,
-        ] {
+        for dir in MoveDirection::enumerate() {
             let nxt = cur.move_in(dir);
             if dim.check_oob(nxt) {
                 continue;
