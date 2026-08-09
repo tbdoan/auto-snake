@@ -48,6 +48,18 @@ pub enum MoveDirection {
     Right,
 }
 
+impl Display for MoveDirection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            MoveDirection::Up => "up",
+            MoveDirection::Down => "down",
+            MoveDirection::Left => "left",
+            MoveDirection::Right => "right",
+        };
+        write!(f, "{}", s.to_uppercase())
+    }
+}
+
 impl MoveDirection {
     pub fn enumerate() -> Vec<Self> {
         vec![Self::Up, Self::Right, Self::Down, Self::Left]

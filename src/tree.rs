@@ -40,6 +40,7 @@ pub fn snake_behavior<'a>() -> bbt::Behavior<Action> {
         bbt::Action(Action::MoveForward),
     ]);
     bbt::Sequence(vec![
+        bbt::Action(Action::FindPathToFood),
         make_move,
         // if alive, continue, else gameover
         bbt::If(
@@ -72,6 +73,8 @@ pub fn snake_tick(
                 Action::TurnLeft => tick_turn_left(arena),
                 Action::ShouldTurnRight => tick_should_turn_right(arena, bb),
                 Action::TurnRight => tick_turn_right(arena),
+
+                // sentinel states
                 Action::BbtRunning => bbt::Running,
             };
             (status, args.dt)
@@ -80,13 +83,13 @@ pub fn snake_tick(
     return status;
 }
 
-// TODO: decouple the bfs algorithm from the arena
 fn tick_find_path_to_food(arena: &Arena, bb: &mut Blackboard) -> bbt::Status {
     let obstacles = Vec::from(arena.snake.body.clone());
     let path = bfs(arena.snake.head, arena.food, arena.dim, &obstacles);
 
     // no path found to food
     if path.is_empty() {
+        log::warn!("no path to food found");
         return bbt::Status::Failure;
     }
 
@@ -94,6 +97,7 @@ fn tick_find_path_to_food(arena: &Arena, bb: &mut Blackboard) -> bbt::Status {
     let nxt = path.get(1).expect("path is at least 2 long");
     for dir in MoveDirection::enumerate() {
         if nxt == &arena.snake.head.move_in(dir) {
+            log::info!("direction = {}", dir);
             bb.new_direction = Some(dir);
             return bbt::Status::Success;
         }
