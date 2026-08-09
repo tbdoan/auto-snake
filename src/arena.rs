@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::collections::VecDeque;
+use std::fmt::Display;
 
 use rand::Rng;
 
@@ -7,6 +8,12 @@ use rand::Rng;
 pub struct Coord {
     pub x: u32,
     pub y: u32,
+}
+
+impl Display for Coord {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
 }
 
 impl From<(u32, u32)> for Coord {

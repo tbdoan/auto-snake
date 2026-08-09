@@ -18,10 +18,10 @@ pub fn render(arena: &Arena) -> std::io::Result<()> {
 
     // draw the borders
     #[allow(clippy::needless_range_loop)]
-    for y in 0..rows + 2 {
-        for x in 0..cols + 2 {
-            if x == 0 || y == 0 || x == cols + 1 || y == rows + 1 {
-                grid[y][x] = '#';
+    for x in 0..rows + 2 {
+        for y in 0..cols + 2 {
+            if x == 0 || y == 0 || x == rows + 1 || y == cols + 1 {
+                grid[x][y] = '#';
             }
         }
     }
@@ -32,7 +32,11 @@ pub fn render(arena: &Arena) -> std::io::Result<()> {
         grid[x][y] = '●';
     }
 
-    // draw the snakes
+    // draw the snake(s)
+    {
+        let (x, y) = shift(arena.snake.head);
+        grid[x][y] = '█';
+    }
     for coord in &arena.snake.body {
         assert!(
             coord != &arena.food,
@@ -40,7 +44,7 @@ pub fn render(arena: &Arena) -> std::io::Result<()> {
         );
 
         let (x, y) = shift(*coord);
-        grid[x][y] = '█';
+        grid[x][y] = '▓';
     }
 
     for row in &grid {

@@ -48,6 +48,7 @@ pub fn snake_tick(arena: &mut Arena, dt: Duration, bt: &mut bbt::BT<Action, ()>)
 }
 
 fn tick_move_forward(arena: &mut Arena) -> bbt::Status {
+    log::error!("snake head: {}", arena.snake.head);
     arena.snake.move_forward();
     bbt::Status::Success
 }

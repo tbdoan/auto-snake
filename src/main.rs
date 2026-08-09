@@ -18,12 +18,22 @@ use bonsai_bt as bbt;
 use crate::tree::snake_behavior;
 use crate::tree::snake_tick;
 
-fn main() -> Result<()> {
-    let mut arena = Arena::new(20, 40);
-    let mut out = stdout();
+const RENDER: bool = true;
 
-    execute!(out, EnterAlternateScreen, Hide, Clear(ClearType::All))?;
-    render::render(&arena)?; // initial render
+fn main() -> Result<()> {
+    if !RENDER {
+        env_logger::Builder::new()
+            .filter_level(log::LevelFilter::Info)
+            .init();
+    }
+
+    let mut arena = Arena::new(20, 40);
+
+    if RENDER {
+        let mut out = stdout();
+        execute!(out, EnterAlternateScreen, Hide, Clear(ClearType::All))?;
+        render::render(&arena)?; // initial render
+    }
 
     let mut bt = bbt::BT::new(snake_behavior(), ());
 
@@ -41,7 +51,9 @@ fn main() -> Result<()> {
             bbt::Status::Running => {}
         }
 
-        render::render(&arena)?;
+        if RENDER {
+            render::render(&arena)?;
+        }
 
         std::thread::sleep(tick_intvl);
     }
