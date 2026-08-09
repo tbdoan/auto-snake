@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::collections::VecDeque;
 
 use rand::Rng;
 
@@ -17,7 +18,7 @@ impl From<(u32, u32)> for Coord {
     }
 }
 
-enum Direction {
+enum MoveDirection {
     Up,
     Down,
     Left,
@@ -25,10 +26,58 @@ enum Direction {
 }
 
 pub struct Snake {
-    pub body: Vec<Coord>,
-    pub direction: Direction,
+    pub head: Coord,
+    /// not including head
+    pub body: VecDeque<Coord>,
+    pub direction: MoveDirection,
+    pub dead: bool,
 }
 
+enum TurnDirection {
+    Left,
+    Right,
+}
+
+impl Snake {
+    // unconditionally move the snake - we must check for collisions at a
+    // later step, to handle the case of multiple snakes headbutting.
+    pub fn move_forward(&mut self) {
+        // set the new head
+        let head = self.head;
+        let new_head = match self.direction {
+            MoveDirection::Up => (head.x - 1, head.y),
+            MoveDirection::Down => (head.x + 1, head.y),
+            MoveDirection::Left => (head.x, head.y - 1),
+            MoveDirection::Right => (head.x, head.y + 1),
+        }
+        .into();
+
+        // set the new head + shift the body
+        self.head = new_head;
+        self.body.push_front(head);
+        self.body.pop_back();
+    }
+
+    /// does not move the snake
+    pub fn turn(&mut self, turn_direction: TurnDirection) {
+        self.direction = match turn_direction {
+            TurnDirection::Left => match self.direction {
+                MoveDirection::Up => MoveDirection::Left,
+                MoveDirection::Down => MoveDirection::Right,
+                MoveDirection::Left => MoveDirection::Down,
+                MoveDirection::Right => MoveDirection::Up,
+            },
+            TurnDirection::Right => match self.direction {
+                MoveDirection::Up => MoveDirection::Right,
+                MoveDirection::Down => MoveDirection::Left,
+                MoveDirection::Left => MoveDirection::Up,
+                MoveDirection::Right => MoveDirection::Down,
+            },
+        };
+    }
+}
+
+/// global, game state
 pub struct Arena {
     pub rows: u32,
     pub cols: u32,
@@ -45,8 +94,10 @@ impl Arena {
             food: (0, 0).into(),
             // snake at center, starting right
             snake: Snake {
-                body: vec![(rows / 2, cols / 2).into()],
-                direction: Direction::Right,
+                head: (rows / 2, cols / 2).into(),
+                body: VecDeque::new(),
+                direction: MoveDirection::Right,
+                dead: false,
             },
         };
 
