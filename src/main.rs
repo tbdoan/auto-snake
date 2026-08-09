@@ -40,7 +40,7 @@ fn main() -> Result<()> {
     let mut bt = bbt::BT::new(snake_behavior(), Blackboard::new()).with_telemetry(8080)?;
 
     // let fps = 10;
-    let fps = 3;
+    let fps = 10;
     let tick_intvl = Duration::from_secs(1) / fps;
 
     loop {

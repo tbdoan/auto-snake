@@ -137,6 +137,28 @@ impl Snake {
     pub fn turn(&mut self, new_direction: MoveDirection) {
         self.direction = new_direction;
     }
+
+    /// grow tail-first, in the direction
+    pub fn grow(&mut self) {
+        let body_len = self.body.len();
+        let (second_to_last, last): (Option<Coord>, Coord) = match body_len {
+            0 => (None, self.head),
+            1 => (Some(self.head), *self.body.get(0).expect("len = 1")),
+            _ => (
+                Some(*self.body.get(body_len - 2).expect("len > 1")),
+                *self.body.get(body_len - 1).expect("len > 1"),
+            ),
+        };
+        let direction_from_tail = match second_to_last {
+            // if second to last exists, then we can find the direction
+            Some(s) => s.direction_to(last),
+            // else just make it the opposite of current
+            None => self.direction.opposite(),
+        };
+        let new_tail = last.move_in(direction_from_tail);
+        // this may be out of bounds :(
+        self.body.push_back(new_tail);
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -215,5 +237,14 @@ impl Arena {
         let has_hit_self = self.snake.body.contains(&head);
         let has_gone_oob = self.dim.check_oob(head);
         self.snake.dead = has_hit_self || has_gone_oob;
+        if self.snake.dead {
+            return;
+        }
+
+        // has it eaten the food
+        if head == self.food {
+            self.snake.grow();
+            self.regen_food();
+        }
     }
 }
