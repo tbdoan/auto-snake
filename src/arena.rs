@@ -30,24 +30,24 @@ impl From<(i32, i32)> for Coord {
 
 impl Coord {
     // returns none if moving would underflow
-    pub fn move_in(&self, dir: MoveDirection) -> Self {
+    pub fn move_in(&self, dir: Direction) -> Self {
         let mut after = *self; // copy it
         match dir {
-            MoveDirection::Up => after.x -= 1,
-            MoveDirection::Down => after.x += 1,
-            MoveDirection::Left => after.y -= 1,
-            MoveDirection::Right => after.y += 1,
+            Direction::Up => after.x -= 1,
+            Direction::Down => after.x += 1,
+            Direction::Left => after.y -= 1,
+            Direction::Right => after.y += 1,
         };
         after
     }
 
     /// Panics if adj is not adjacent to self
-    pub fn direction_to(&self, adj: Coord) -> MoveDirection {
+    pub fn direction_to(&self, adj: Coord) -> Direction {
         assert!(
             (self.x - adj.x).abs() + (self.y - adj.y).abs() == 1,
             "coordinates must be adjacent"
         );
-        for dir in MoveDirection::enumerate() {
+        for dir in Direction::enumerate() {
             if adj == self.move_in(dir) {
                 return dir;
             }
@@ -55,57 +55,65 @@ impl Coord {
 
         unreachable!("a direction must be found")
     }
+
+    pub fn neighbors(&self) -> Vec<Coord> {
+        let mut ns = Vec::new();
+        for dir in Direction::enumerate() {
+            ns.push(self.move_in(dir));
+        }
+        ns
+    }
 }
 
 #[derive(Clone, Copy, PartialEq)]
-pub enum MoveDirection {
+pub enum Direction {
     Up,
     Down,
     Left,
     Right,
 }
 
-impl Display for MoveDirection {
+impl Display for Direction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
-            MoveDirection::Up => "up",
-            MoveDirection::Down => "down",
-            MoveDirection::Left => "left",
-            MoveDirection::Right => "right",
+            Direction::Up => "up",
+            Direction::Down => "down",
+            Direction::Left => "left",
+            Direction::Right => "right",
         };
         write!(f, "{}", s.to_uppercase())
     }
 }
 
-impl MoveDirection {
+impl Direction {
     pub fn enumerate() -> Vec<Self> {
         vec![Self::Up, Self::Right, Self::Down, Self::Left]
     }
 
-    pub fn clockwise(&self) -> Self {
+    pub fn _clockwise(&self) -> Self {
         match self {
-            MoveDirection::Up => MoveDirection::Left,
-            MoveDirection::Left => MoveDirection::Down,
-            MoveDirection::Down => MoveDirection::Right,
-            MoveDirection::Right => MoveDirection::Up,
+            Direction::Up => Direction::Left,
+            Direction::Left => Direction::Down,
+            Direction::Down => Direction::Right,
+            Direction::Right => Direction::Up,
         }
     }
 
-    pub fn counterclockwise(&self) -> Self {
+    pub fn _counterclockwise(&self) -> Self {
         match self {
-            MoveDirection::Up => MoveDirection::Right,
-            MoveDirection::Right => MoveDirection::Down,
-            MoveDirection::Down => MoveDirection::Left,
-            MoveDirection::Left => MoveDirection::Up,
+            Direction::Up => Direction::Right,
+            Direction::Right => Direction::Down,
+            Direction::Down => Direction::Left,
+            Direction::Left => Direction::Up,
         }
     }
 
     pub fn opposite(&self) -> Self {
         match self {
-            MoveDirection::Up => MoveDirection::Down,
-            MoveDirection::Down => MoveDirection::Up,
-            MoveDirection::Left => MoveDirection::Right,
-            MoveDirection::Right => MoveDirection::Left,
+            Direction::Up => Direction::Down,
+            Direction::Down => Direction::Up,
+            Direction::Left => Direction::Right,
+            Direction::Right => Direction::Left,
         }
     }
 }
@@ -114,7 +122,7 @@ pub struct Snake {
     pub head: Coord,
     /// not including head
     pub body: VecDeque<Coord>,
-    pub direction: MoveDirection,
+    pub direction: Direction,
     pub dead: bool,
 }
 
@@ -134,12 +142,12 @@ impl Snake {
 
     /// `new_direction` assumed to be valid.
     /// does not move the snake.
-    pub fn turn(&mut self, new_direction: MoveDirection) {
+    pub fn turn(&mut self, new_direction: Direction) {
         self.direction = new_direction;
     }
 
-    /// grow tail-first, in the direction
-    pub fn grow(&mut self) {
+    /// returns tail and favored tail direction
+    pub fn grow(&mut self) -> (Coord, Direction) {
         let body_len = self.body.len();
         let (second_to_last, last): (Option<Coord>, Coord) = match body_len {
             0 => (None, self.head),
@@ -155,9 +163,8 @@ impl Snake {
             // else just make it the opposite of current
             None => self.direction.opposite(),
         };
-        let new_tail = last.move_in(direction_from_tail);
 
-        self.body.push_back(new_tail);
+        (last, direction_from_tail)
     }
 }
 
@@ -190,7 +197,7 @@ impl Arena {
             snake: Snake {
                 head: (rows as i32 / 2, cols as i32 / 2).into(),
                 body: VecDeque::new(),
-                direction: MoveDirection::Right,
+                direction: Direction::Right,
                 dead: false,
             },
         };
@@ -237,6 +244,12 @@ impl Arena {
         log::warn!("no locations for food found after {n_attempts} attempts");
     }
 
+    pub fn collision(&self, c: &Coord) -> bool {
+        let body_collision = self.snake.body.contains(c);
+        let boundary_collision = self.dim.check_oob(c);
+        body_collision || boundary_collision
+    }
+
     /// reconcile the state with the result of behavior trees
     pub fn reconcile(&mut self, bb: &Blackboard) {
         // move the snake
@@ -246,22 +259,34 @@ impl Arena {
 
         // decide if its alive - has the head collided
         let head = self.snake.head;
-        let has_hit_self = self.snake.body.contains(&head);
-        let has_gone_oob = self.dim.check_oob(&head);
-        self.snake.dead = has_hit_self || has_gone_oob;
+        self.snake.dead = self.collision(&head);
         if self.snake.dead {
             return;
         }
 
         // has it eaten the food
         if Some(head) == self.food {
-            self.snake.grow();
-            assert!(
-                !self
-                    .dim
-                    .check_oob(self.snake.body.back().expect("just grew")),
-                "new tail is in bounds"
-            );
+            let (cur_tail, direction_from_tail) = self.snake.grow();
+            let prefer = cur_tail.move_in(direction_from_tail);
+            let mut tail = None;
+            if !self.collision(&prefer) {
+                tail = Some(prefer);
+            } else {
+                log::warn!("cannot grow tail ideally");
+                for nbor in cur_tail.neighbors() {
+                    if !self.collision(&nbor) {
+                        tail = Some(nbor);
+                        break;
+                    }
+                }
+            }
+
+            // add the tail, if have
+            if let Some(t) = tail {
+                self.snake.body.push_back(t);
+            } else {
+                log::warn!("could not grow snake, no place to grow tail");
+            }
             self.regen_food();
         }
     }

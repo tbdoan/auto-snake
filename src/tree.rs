@@ -6,7 +6,7 @@ use std::time::Duration;
 use bonsai_bt as bbt;
 
 use crate::arena::Arena;
-use crate::arena::MoveDirection;
+use crate::arena::Direction;
 use crate::bfs::bfs;
 use crate::blackboard::Blackboard;
 use crate::blackboard::ShortestPathToFood;

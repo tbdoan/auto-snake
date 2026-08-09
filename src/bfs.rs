@@ -4,7 +4,7 @@ use std::collections::VecDeque;
 
 use crate::arena::Coord;
 use crate::arena::Dimensions;
-use crate::arena::MoveDirection;
+use crate::arena::Direction;
 
 /// Return path, inclusive start and end. If no path found, return empty
 pub fn bfs(start: Coord, end: Coord, dim: Dimensions, obstacles: &[Coord]) -> Vec<Coord> {
@@ -24,20 +24,19 @@ pub fn bfs(start: Coord, end: Coord, dim: Dimensions, obstacles: &[Coord]) -> Ve
     let mut child_parent = HashMap::new();
 
     'bfs: while let Some(cur) = q.pop_front() {
-        for dir in MoveDirection::enumerate() {
-            let nxt = cur.move_in(dir);
-            if dim.check_oob(&nxt) {
+        for nbor in cur.neighbors() {
+            if dim.check_oob(&nbor) {
                 continue;
             }
-            if v.contains(&nxt) {
+            if v.contains(&nbor) {
                 continue;
             }
-            child_parent.insert(nxt, cur);
-            v.insert(nxt);
-            q.push_back(nxt);
+            child_parent.insert(nbor, cur);
+            v.insert(nbor);
+            q.push_back(nbor);
 
             // we want to make sure the target ends up in the mapping
-            if nxt == end {
+            if nbor == end {
                 break 'bfs;
             }
         }
