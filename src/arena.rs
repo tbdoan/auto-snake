@@ -156,7 +156,7 @@ impl Snake {
             None => self.direction.opposite(),
         };
         let new_tail = last.move_in(direction_from_tail);
-        // this may be out of bounds :(
+
         self.body.push_back(new_tail);
     }
 }
@@ -168,7 +168,7 @@ pub struct Dimensions {
 }
 
 impl Dimensions {
-    pub fn check_oob(&self, c: Coord) -> bool {
+    pub fn check_oob(&self, c: &Coord) -> bool {
         c.x < 0 || c.x >= self.rows as i32 || c.y < 0 || c.y >= self.cols as i32
     }
 }
@@ -176,7 +176,7 @@ impl Dimensions {
 /// global, game state
 pub struct Arena {
     pub dim: Dimensions,
-    pub food: Coord,
+    pub food: Option<Coord>,
     pub snake: Snake,
 }
 
@@ -185,7 +185,7 @@ impl Arena {
         let mut a = Self {
             dim: Dimensions { rows, cols },
             // dummy value - immediately overwriten
-            food: (0, 0).into(),
+            food: None,
             // snake at center, starting right
             snake: Snake {
                 head: (rows as i32 / 2, cols as i32 / 2).into(),
@@ -209,20 +209,32 @@ impl Arena {
     }
 
     pub fn regen_food(&mut self) {
-        self.food = self.spawn_food();
-    }
-
-    fn spawn_food(&self) -> Coord {
         let mut excl = HashSet::new();
         // exclude its last position
-        excl.insert(self.food);
+        if let Some(food) = self.food {
+            excl.insert(food);
+        }
         // exclude snake body
         excl.extend(self.snake.body.iter().copied());
 
-        Coord {
-            x: rand::thread_rng().gen_range(0..self.rows()) as i32,
-            y: rand::thread_rng().gen_range(0..self.cols()) as i32,
+        // reset food
+        self.food = None;
+
+        // if we cant find an empty slot, no food this tick
+        let n_attempts = 3;
+        for _ in 0..n_attempts {
+            let cand = Coord {
+                x: rand::thread_rng().gen_range(0..self.rows()) as i32,
+                y: rand::thread_rng().gen_range(0..self.cols()) as i32,
+            };
+
+            if !excl.contains(&cand) {
+                self.food = Some(cand);
+                return;
+            }
         }
+
+        log::warn!("no locations for food found after {n_attempts} attempts");
     }
 
     /// reconcile the state with the result of behavior trees
@@ -235,15 +247,22 @@ impl Arena {
         // decide if its alive - has the head collided
         let head = self.snake.head;
         let has_hit_self = self.snake.body.contains(&head);
-        let has_gone_oob = self.dim.check_oob(head);
+        let has_gone_oob = self.dim.check_oob(&head);
         self.snake.dead = has_hit_self || has_gone_oob;
         if self.snake.dead {
+            panic!("how doe he die?");
             return;
         }
 
         // has it eaten the food
-        if head == self.food {
+        if Some(head) == self.food {
             self.snake.grow();
+            assert!(
+                !self
+                    .dim
+                    .check_oob(self.snake.body.back().expect("just grew")),
+                "new tail is in bounds"
+            );
             self.regen_food();
         }
     }

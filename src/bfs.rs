@@ -26,7 +26,7 @@ pub fn bfs(start: Coord, end: Coord, dim: Dimensions, obstacles: &[Coord]) -> Ve
     'bfs: while let Some(cur) = q.pop_front() {
         for dir in MoveDirection::enumerate() {
             let nxt = cur.move_in(dir);
-            if dim.check_oob(nxt) {
+            if dim.check_oob(&nxt) {
                 continue;
             }
             if v.contains(&nxt) {

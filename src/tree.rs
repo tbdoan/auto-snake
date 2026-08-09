@@ -76,8 +76,15 @@ pub fn snake_tick(
 }
 
 fn tick_find_path_to_food(arena: &Arena, bb: &mut Blackboard) -> bbt::Status {
+    let food = match arena.food {
+        Some(f) => f,
+        None => {
+            log::warn!("no food to route to");
+            return bbt::Failure;
+        }
+    };
     let obstacles = Vec::from(arena.snake.body.clone());
-    let path = bfs(arena.snake.head, arena.food, arena.dim, &obstacles);
+    let path = bfs(arena.snake.head, food, arena.dim, &obstacles);
 
     // no path found to food
     if path.is_empty() {

@@ -26,31 +26,27 @@ pub fn render(arena: &Arena) -> std::io::Result<()> {
         }
     }
 
-    // add the food
-    {
-        let (x, y) = shift(arena.food);
-        grid[x][y] = '●';
-    }
-
     // draw the snake(s)
     {
         let (x, y) = shift(arena.snake.head);
         grid[x][y] = '█';
     }
     for coord in &arena.snake.body {
-        assert!(
-            coord != &arena.food,
-            "the snake must not overlap with the food"
-        );
-
         let (x, y) = shift(*coord);
         grid[x][y] = '▓';
     }
 
+    // add the food
+    if let Some(food) = arena.food {
+        let (x, y) = shift(food);
+        assert_eq!(grid[x][y], ' ', "food is drawn on empty cell");
+        grid[x][y] = '●';
+    }
+
+    // print the grid
     for row in &grid {
         println!("{}", row.iter().collect::<String>());
     }
-
     out.flush()
 }
 
