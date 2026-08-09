@@ -250,7 +250,6 @@ impl Arena {
         let has_gone_oob = self.dim.check_oob(&head);
         self.snake.dead = has_hit_self || has_gone_oob;
         if self.snake.dead {
-            panic!("how doe he die?");
             return;
         }
 

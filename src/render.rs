@@ -27,13 +27,14 @@ pub fn render(arena: &Arena) -> std::io::Result<()> {
     }
 
     // draw the snake(s)
+    let snake = &arena.snake;
     {
-        let (x, y) = shift(arena.snake.head);
-        grid[x][y] = '█';
+        let (x, y) = shift(snake.head);
+        grid[x][y] = if snake.dead { '░' } else { '█' };
     }
-    for coord in &arena.snake.body {
+    for coord in &snake.body {
         let (x, y) = shift(*coord);
-        grid[x][y] = '▓';
+        grid[x][y] = if snake.dead { '░' } else { '▓' };
     }
 
     // add the food
