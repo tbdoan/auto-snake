@@ -254,18 +254,18 @@ impl Arena {
     pub fn reconcile(&mut self, bb: &Blackboard) {
         // move the snake
         let decided_move = bb.decided_move.expect("move has been decided in tick");
-        self.snake.turn(decided_move);
-        self.snake.move_forward();
-
-        // decide if its alive - has the head collided
-        let head = self.snake.head;
-        self.snake.dead = self.collision(&head);
-        if self.snake.dead {
+        let predicted_head = self.snake.head.move_in(decided_move);
+        if self.collision(&predicted_head) {
+            // dont move snake into collided spot. simply mark it for dead
+            self.snake.dead = true;
             return;
         }
 
+        self.snake.turn(decided_move);
+        self.snake.move_forward();
+
         // has it eaten the food
-        if Some(head) == self.food {
+        if Some(self.snake.head) == self.food {
             let (cur_tail, direction_from_tail) = self.snake.grow();
             let prefer = cur_tail.move_in(direction_from_tail);
             let mut tail = None;
