@@ -47,9 +47,11 @@ fn main() -> Result<()> {
         let status = snake_tick(&mut arena, tick_intvl, &mut bt);
         match status {
             bbt::Status::Success => return Ok(()),
-            bbt::Status::Failure => anyhow::bail!("tree failed"),
+            bbt::Failure => anyhow::bail!("tree failed"),
             bbt::Status::Running => {}
         }
+
+        arena.reconcile(bt.blackboard());
 
         if RENDER {
             render::render(&arena)?;

@@ -4,6 +4,8 @@ use std::fmt::Display;
 
 use rand::Rng;
 
+use crate::blackboard::Blackboard;
+
 /// negative coordinates are convenient for detecting collision with left/up boundary
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Coord {
@@ -37,6 +39,21 @@ impl Coord {
             MoveDirection::Right => after.y += 1,
         };
         after
+    }
+
+    /// Panics if adj is not adjacent to self
+    pub fn direction_to(&self, adj: Coord) -> MoveDirection {
+        assert!(
+            (self.x - adj.x).abs() + (self.y - adj.y).abs() == 1,
+            "coordinates must be adjacent"
+        );
+        for dir in MoveDirection::enumerate() {
+            if adj == self.move_in(dir) {
+                return dir;
+            }
+        }
+
+        unreachable!("a direction must be found")
     }
 }
 
@@ -82,6 +99,15 @@ impl MoveDirection {
             MoveDirection::Left => MoveDirection::Up,
         }
     }
+
+    pub fn opposite(&self) -> Self {
+        match self {
+            MoveDirection::Up => MoveDirection::Down,
+            MoveDirection::Down => MoveDirection::Up,
+            MoveDirection::Left => MoveDirection::Right,
+            MoveDirection::Right => MoveDirection::Left,
+        }
+    }
 }
 
 pub struct Snake {
@@ -89,6 +115,7 @@ pub struct Snake {
     /// not including head
     pub body: VecDeque<Coord>,
     pub direction: MoveDirection,
+    pub dead: bool,
 }
 
 impl Snake {
@@ -105,14 +132,10 @@ impl Snake {
         self.body.pop_back();
     }
 
-    /// does not move the snake
-    pub fn turn_left(&mut self) {
-        self.direction = self.direction.clockwise();
-    }
-
-    /// does not move the snake
-    pub fn turn_right(&mut self) {
-        self.direction = self.direction.counterclockwise();
+    /// `new_direction` assumed to be valid.
+    /// does not move the snake.
+    pub fn turn(&mut self, new_direction: MoveDirection) {
+        self.direction = new_direction;
     }
 }
 
@@ -146,6 +169,7 @@ impl Arena {
                 head: (rows as i32 / 2, cols as i32 / 2).into(),
                 body: VecDeque::new(),
                 direction: MoveDirection::Right,
+                dead: false,
             },
         };
 
@@ -177,5 +201,19 @@ impl Arena {
             x: rand::thread_rng().gen_range(0..self.rows()) as i32,
             y: rand::thread_rng().gen_range(0..self.cols()) as i32,
         }
+    }
+
+    /// reconcile the state with the result of behavior trees
+    pub fn reconcile(&mut self, bb: &Blackboard) {
+        // move the snake
+        let decided_move = bb.decided_move.expect("move has been decided in tick");
+        self.snake.turn(decided_move);
+        self.snake.move_forward();
+
+        // decide if its alive - has the head collided
+        let head = self.snake.head;
+        let has_hit_self = self.snake.body.contains(&head);
+        let has_gone_oob = self.dim.check_oob(head);
+        self.snake.dead = has_hit_self || has_gone_oob;
     }
 }
