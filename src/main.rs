@@ -29,8 +29,8 @@ fn main() -> Result<()> {
             .init();
     }
 
-    // let mut arena = Arena::new(20, 40);
-    let mut arena = Arena::new(5, 5);
+    let mut arena = Arena::new(20, 40);
+    // let mut arena = Arena::new(5, 5);
 
     if RENDER {
         let mut out = stdout();
