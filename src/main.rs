@@ -35,7 +35,7 @@ fn main() -> Result<()> {
         render::render(&arena)?; // initial render
     }
 
-    let mut bt = bbt::BT::new(snake_behavior(), ());
+    let mut bt = bbt::BT::new(snake_behavior(), ()).with_telemetry(8080)?;
 
     // let fps = 10;
     let fps = 1;
